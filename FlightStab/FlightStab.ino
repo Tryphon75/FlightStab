@@ -444,7 +444,7 @@ bool ow_loop(); // OneWireSerial.ino
  PB1 9/D9   ELE_OUT (PWM)   PC1 15/A1 THR_OUT 	     PD1 1/D1 (TXD)
  PB2 10/D10 AIL_OUT (PWM)   PC2 16/A2 FLP_OUT        PD2 2/D2 CPPM_IN
  PB3 11/D11 AILR_OUT (PWM)  PC3 17/A3 no connection  PD3 3/D3 RUD_OUT (PWM)
- PB4 12/D12 AUX_IN				  PC4 18/A4 (SDA)          PD4 4/D4 AIL_IN
+ PB4 12/D12 AUX_IN	    PC4 18/A4 (SDA)          PD4 4/D4 AIL_IN
  PB5 13/D13 LED (SCK)       PC5 19/A5 (SCL)          PD5 5/D5 RUD_IN (PWM)
  PB6 14/D14 (XTAL1)         PC6 (RESET)              PD6 6/D6 ELE_IN (PWM)
  PB7 15/D15 (XTAL2)                                  PD7 7/D7 AILR_IN
@@ -984,7 +984,8 @@ uint8_t i2c_read_reg(uint8_t addr, uint8_t reg)
   i2c_start(addr << 1); // write reg
   i2c_write(reg);
   i2c_start((addr << 1) | 1); // read data
-  return i2c_read(true);
+  //jrb return i2c_read(true);
+  return i2c_read(false);
 }
 
 void i2c_read_buf(uint8_t addr, uint8_t *buf, int8_t size)
@@ -2272,7 +2273,8 @@ void setup()
   wdt_disable();
 #endif // __AVR_ATmega168__ || __AVR_ATmega328P__
 
-#if defined(NANO_WII) || defined(MINI_MWC)
+//jrb #if defined(NANO_WII) || defined(MINI_MWC)
+#if defined(NANO_WII) || defined(MINI_MWC) || defined(FLIP_1_5)
   // set up default parameters for No DIPSW and No POT
   cfg.wing_mode = WING_RUDELE_2AIL;
   for (i=0; i<3; i++) {
