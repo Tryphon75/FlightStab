@@ -1,0 +1,24 @@
+2014-09-01 FlightStab Change Log
+
+20140505
+FlightStab.ino
+Fix logic bug in uint8_t i2c_read_reg() function
+
+
+20140505
+FlightStab.ino
+Add missing defined(FLIP_1_5) in Setup function
+
+
+20140829
+SerialRX.ino
+Use #defines for SBUS & Spektrum constants instead of hard coded numbers.
+Use defines for receive buffer size.
+Limit while loop to not exceed receive buffer size.
+Check for 0x00 value in byte 25 of sbus frame to validate frame.
+
+
+20140831
+SerialRX.ino
+Use timer to determine if received serial data is crossing 2 frames
+for both SBUS & Spektrum
