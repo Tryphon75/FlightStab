@@ -1,7 +1,7 @@
 2014-12-16 FlightStab Change Log
 
 
-20141209
+20141216
 FlightStab.ino and SerialRX.ino
 Add support for Multiplex and HoTT SRXL Protocol
 
