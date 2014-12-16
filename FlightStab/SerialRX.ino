@@ -18,7 +18,7 @@ int8_t rshift;
 // The following value is added to the received pulse count
 // to make the center pulse width = 1500 when the TX output is 1500
 // TODO(noobee): i guess we would need to make this configurable..
-#define SBUS_OFFSET 1009 // 1009 for Futaba X8R, 1003 for Taranis FRSKY X8R, 984 for Orange R800x
+#define SBUS_OFFSET 1008 // 1009 for Futaba R6208SB, 1008 for Taranis FRSKY X8R, 984 for Orange R800x
 
 //jrb - added 20140829 Use defines for SBUS Constants instead of hard coded numbers
 // SBUS unique defines
@@ -28,7 +28,20 @@ int8_t rshift;
 #define SERIAL_WAIT_TIME	5000
 #endif
       
-#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS))
+#if defined(SERIALRX_SRXL)
+#include <util/crc16.h>
+#define SERIAL_FRAME_SIZE	37		// changed to 37 for 16ch HoTT SUMD		      
+#define MPX_OFFSET 		988
+#define SERIAL_WAIT_TIME	5000  
+#define MPX_SRL_12_CHAN_ID	0xA1
+#define MPX_SRL_12_CHAN_SIZE	27
+#define MPX_SRL_16_CHAN_ID	0xA2
+#define MPX_SRL_16_CHAN_SIZE	35
+#define HOTT_SUMD_ID1		0xA8
+#define HOTT_SUMD_ID2		0x01	  
+#endif
+	  
+#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS) || defined(SERIALRX_SRXL))
   #if defined(NANOWII)
     HardwareSerial *pSerial = &Serial1; // TODO: hardcoded for NanoWii for now
   #else
@@ -60,6 +73,9 @@ int8_t rshift;
         digitalWrite(5,HIGH);		// D6 provides negative pulse when serialrx_update function is active
       #endif
     #endif
+	#if defined(SERIALRX_SRXL)
+	  pSerial->begin(115200L);
+	#endif
   }
 
   bool serialrx_update()
@@ -69,11 +85,14 @@ int8_t rshift;
       bool sbus_return = false;
     #endif // SERIALRX_SBUS  
     
-  //jrb 20140831 use for both Spektrum & SBUS #if defined (SERIALRX_SPEKTRUM) 	// Used only for Spektrum    
+  //jrb 20140831 use for all Serial Protocols  
     static uint32_t last_rx_time;
     uint32_t t;
     static uint8_t buf[SERIAL_FRAME_SIZE];
-  //jrb 20140831 use for both Spektrum & SBUS #endif  
+  
+  #if defined(SERIALRX_SRXL)
+    bool sbus_return = false;
+  #endif
 
   //jrb add for debug
   #if defined(SERIALRX_DEBUG) && 0
@@ -89,7 +108,7 @@ int8_t rshift;
     while (pSerial->available() && index<SERIAL_FRAME_SIZE) {
     uint8_t ch = pSerial->read();
 
-//jrb - 20140832 make frame time test common to both Spektrum and SBUS
+//jrb - 20140832 make frame time test common to all Serial Protocols
     t = micros1();
     // we assume loop() calls to serialrx_update() in << SERIAL_WAIT_TIME intervals
     if ((int32_t)(t - last_rx_time) > SERIAL_WAIT_TIME) {
@@ -169,6 +188,80 @@ jrb*/
   }  
   #endif // SERIALRX_SPEKTRUM
 
+  #if defined(SERIALRX_SRXL) // ----------------------------------------------
+    #warning SERIALRX_SRXL defined // emit device name 
+	  
+      if (index < SERIAL_FRAME_SIZE)	//JRB Should this be just < so we don't overflow buffer????? YES!!!
+        buf[index++] = ch;
+      // MPX SRXL 12/16 channels	  
+      if ( ((buf[0] == MPX_SRL_12_CHAN_ID) && (index >= MPX_SRL_12_CHAN_SIZE)) 
+      	 || ((buf[0] == MPX_SRL_16_CHAN_ID) && (index >= MPX_SRL_16_CHAN_SIZE)) )
+      {
+		uint16_t crc = 0;
+		for (uint8_t i=0; i<index; i++){
+			uint8_t data;
+			data = buf[i];
+			crc = _crc_xmodem_update(crc, data);
+		}
+		if (crc == 0){
+			volatile int16_t **p = rx_chan;
+			// Only process first 8 channels
+			for (int8_t i=2; i<18; i+=2) 
+			{
+			  uint16_t w = (((uint16_t)buf[i-1] << 8) | (uint16_t)buf[i] ) & 0xfff;
+			  *p[(i>>1)-1] = ((((w << 1) + w) - (w >> 2)) >> 3) + 796;
+			}
+			sbus_return = true;
+		}
+        index = 0;
+        
+        #if defined(SERIAL_DEBUG) && 2
+	      //Serial.println("Serial SRXL");
+	      #endif
+      }
+      // HoTT SUMD
+      else if ( ((buf[0] == HOTT_SUMD_ID1) && ((buf[1] & 0x7f) == HOTT_SUMD_ID2) ) )
+      {
+        uint8_t n_channels = buf[2];
+        if (index >= ((n_channels << 1) +5))
+        {
+			uint16_t crc = 0;
+			for (uint8_t i=0; i<(index-2); i++){
+				uint8_t data;
+				data = buf[i];
+				crc = _crc_xmodem_update(crc, data);
+			}
+			if (crc == ((buf[index-2] << 8) + buf[index-1])){
+			   volatile int16_t **p = rx_chan;
+			   // Only process first 8 channels
+			   for (int8_t i=2; i<18; i+=2) 
+			   {
+				 uint16_t w = (((uint16_t)buf[i+1] << 8) | (uint16_t)buf[i+2] );
+				 *p[(i>>1)-1] = (w >> 3);
+			   }
+				sbus_return = true;
+			}
+			index = 0;
+        #if defined(SERIAL_DEBUG) && 2
+	      //Serial.println("Serial SUMD");
+	      #endif
+        } 
+      }
+    //his add for debug  
+    #if defined(SERIAL_DEBUG) && 2   
+      if (RXcount > 10){
+        for (index = 0; index < 8; index++){
+          Serial.print(*rx_chan[index]); Serial.print(' ');
+        }
+        Serial.println(' '); 
+        RXcount = 0; 
+      }
+      if (sbus_return)
+        RXcount++; 
+    #endif
+  }  
+  return (sbus_return); 
+  #endif // SERIALRX_SRXL -------------------------------------------------------
 
 
   #if defined (SERIALRX_SBUS)

@@ -34,6 +34,10 @@ bool ow_loop(); // OneWireSerial.ino
 //#define SERIALRX_CPPM // over a digital-in pin (preferably ICP)
 //#define SERIALRX_SPEKTRUM // over the serial port
 //#define SERIALRX_SBUS // over the serial port
+//#define SERIALRX_SRXL // over the serial port SRXL MPX or HoTT
+//#define SERIALRX_DEFMPX // default MPX channel mapping
+
+//#define MAX_TRAVEL // Use travel of 900us-2100us in place of 1000us-2000us
 
 //#define NO_ONEWIRE // remove one-wire serial config code
 //#define NO_STICKCONFIG // remove stick config code
@@ -411,7 +415,7 @@ bool ow_loop(); // OneWireSerial.ino
 #define GYRO_ORIENTATION(x, y, z) {gyro[0] = (-y); gyro[1] = (-x); gyro[2] = (z);}
 
 // must use one of the SERIALRX modes
-#if !defined(SERIALRX_CPPM) && !defined(SERIALRX_SPEKTRUM) && !defined(SERIALRX_SBUS)
+#if !defined(SERIALRX_CPPM) && !defined(SERIALRX_SPEKTRUM) && !defined(SERIALRX_SBUS) && !defined(SERIALRX_SRXL)
 #error "MINI_MWC must use one of SERIALRX_CPPM or SERIALRX_SPEKTRUM or SERIALRX_SBUS"
 #endif
 
@@ -444,7 +448,7 @@ bool ow_loop(); // OneWireSerial.ino
  PB1 9/D9   ELE_OUT (PWM)   PC1 15/A1 THR_OUT 	     PD1 1/D1 (TXD)
  PB2 10/D10 AIL_OUT (PWM)   PC2 16/A2 FLP_OUT        PD2 2/D2 CPPM_IN
  PB3 11/D11 AILR_OUT (PWM)  PC3 17/A3 no connection  PD3 3/D3 RUD_OUT (PWM)
- PB4 12/D12 AUX_IN	    PC4 18/A4 (SDA)          PD4 4/D4 AIL_IN
+ PB4 12/D12 AUX_IN				  PC4 18/A4 (SDA)          PD4 4/D4 AIL_IN
  PB5 13/D13 LED (SCK)       PC5 19/A5 (SCL)          PD5 5/D5 RUD_IN (PWM)
  PB6 14/D14 (XTAL1)         PC6 (RESET)              PD6 6/D6 ELE_IN (PWM)
  PB7 15/D15 (XTAL2)                                  PD7 7/D7 AILR_IN
@@ -548,7 +552,7 @@ bool ow_loop(); // OneWireSerial.ino
 #error Cannot define mode than one SERIALRX_* mode (CPPM/SPEKTRUM/SBUS)
 #endif
 
-#if defined(SERIALRX_CPPM) || defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS)
+#if defined(SERIALRX_CPPM) || defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS) || defined(SERIALRX_SRXL)
 #define SERIALRX_ENABLED
 #endif
 
@@ -718,6 +722,10 @@ const int8_t serialrx_order_TAER1a2f[rx_chan_size] = {
   SERIALRX_T, SERIALRX_A, SERIALRX_E, SERIALRX_R, SERIALRX_1, SERIALRX_a, SERIALRX_2, SERIALRX_F};
 const int8_t serialrx_order_AETR1a2f[rx_chan_size] = {
   SERIALRX_A, SERIALRX_E, SERIALRX_T, SERIALRX_R, SERIALRX_1, SERIALRX_a, SERIALRX_2, SERIALRX_F};
+const int8_t serialrx_order_AERTa1f2[rx_chan_size] = {
+  SERIALRX_A, SERIALRX_E, SERIALRX_R, SERIALRX_T, SERIALRX_a, SERIALRX_1, SERIALRX_F, SERIALRX_2};
+const int8_t serialrx_order_TAERa1f2[rx_chan_size] = {
+  SERIALRX_T, SERIALRX_A, SERIALRX_E, SERIALRX_R, SERIALRX_a, SERIALRX_1, SERIALRX_F, SERIALRX_2};
 
 volatile int16_t *rx_chan[rx_chan_size] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
   
@@ -985,7 +993,7 @@ uint8_t i2c_read_reg(uint8_t addr, uint8_t reg)
   i2c_write(reg);
   i2c_start((addr << 1) | 1); // read data
   //jrb return i2c_read(true);
-  return i2c_read(false);
+  return i2c_read(false);  
 }
 
 void i2c_read_buf(uint8_t addr, uint8_t *buf, int8_t size)
@@ -1939,7 +1947,7 @@ void dump_sensors()
   while (true) {
     t = micros1();
 
-#if defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS)
+#if defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS) || defined(SERIALRX_SRXL)
     if (serialrx_update())
       rx_frame_sync = true;
 #endif 
@@ -1988,8 +1996,13 @@ void dump_sensors()
     Serial.print(gyro[2]); Serial.print('\t');
 
     servo_out += servo_dir;
+#if defined (MAX_TRAVEL) || defined(SERIALRX_DEFMPX)
+    if (servo_out < RX_WIDTH_MIN || servo_out > RX_WIDTH_MAX) {
+      servo_out = constrain(servo_out, RX_WIDTH_MIN, RX_WIDTH_MAX);
+#else
     if (servo_out < RX_WIDTH_LOW_FULL || servo_out > RX_WIDTH_HIGH_FULL) {
       servo_out = constrain(servo_out, RX_WIDTH_LOW_FULL, RX_WIDTH_HIGH_FULL);
+#endif      
       servo_dir = -servo_dir;
     }
     ail_out2 = ele_out2 = rud_out2 = ailr_out2 = thr_out2 = flp_out2 = aux2_out2 = servo_out;
@@ -2184,7 +2197,7 @@ void stick_config(struct _stick_zone *psz)
       last_servo_update_time = t;
     }
 
-#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS))
+#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS) || defined(SERIALRX_SRXL))
     if (serialrx_update()) {
       rx_frame_sync = true;
   }
@@ -2255,11 +2268,11 @@ void setup()
     set_led_msg(2, 20, LED_VERY_SHORT); 
 
 #if defined(SERIAL_DEBUG) || defined(DUMP_SENSORS)
-#if (defined(SERIALRX_SBUS) || defined(SERIALRX_SPEKTRUM))
+#if (defined(SERIALRX_SBUS) || defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SRXL))
   serialrx_init();
 #else  
   Serial.begin(115200L);
-#endif // (defined(SERIALRX_SBUS) || defined(SERIALRX_SPEKTRUM)) 
+#endif // (defined(SERIALRX_SBUS) || defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SRXL)) 
 #endif
 
 #if defined(SERIAL_DEBUG) && 0 
@@ -2273,7 +2286,6 @@ void setup()
   wdt_disable();
 #endif // __AVR_ATmega168__ || __AVR_ATmega328P__
 
-//jrb #if defined(NANO_WII) || defined(MINI_MWC)
 #if defined(NANO_WII) || defined(MINI_MWC) || defined(FLIP_1_5)
   // set up default parameters for No DIPSW and No POT
   cfg.wing_mode = WING_RUDELE_2AIL;
@@ -2289,7 +2301,7 @@ void setup()
 #endif
   cfg.mixer_epa_mode = MIXER_EPA_FULL;
   
-#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS))
+#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS)) // || defined(SERIALRX_SRXL))
   cfg.servo_frame_rate = 20; // safe rate for analog servos
 #else
   cfg.servo_frame_rate = 0; // no min interval, rx will drive the update rate
@@ -2306,6 +2318,12 @@ void setup()
   pserialrx_order = serialrx_order_TAER1a2f;
 #elif defined(SERIALRX_SBUS)
   pserialrx_order = serialrx_order_AETR1a2f;
+#elif defined(SERIALRX_SRXL)
+  #ifdef SERIALRX_DEFMPX
+    pserialrx_order = serialrx_order_AERTa1f2;
+  #else  
+    pserialrx_order = serialrx_order_TAERa1f2;
+  #endif
 #else
   pserialrx_order = serialrx_order_RETA1a2f;
 #endif
@@ -2425,15 +2443,20 @@ void setup()
   // TIMSK0 &= ~(1 << TOIE0); // disable overflow interrupt
 
 #if !defined(SERIAL_DEBUG) && !defined(DUMP_SENSORS)
-#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS))
+#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS) || defined(SERIALRX_SRXL))
   serialrx_init();
 #endif
 #endif    
   
   // set mixer limits based on configuration
   switch (cfg.mixer_epa_mode) {
+#if defined (MAX_TRAVEL) || defined(SERIALRX_DEFMPX)
+  case MIXER_EPA_FULL: // 900-2100
+    set_mixer_limits(RX_WIDTH_MIN, RX_WIDTH_MAX);
+#else  	
   case MIXER_EPA_FULL: // 1000-2000
     set_mixer_limits(RX_WIDTH_LOW_FULL, RX_WIDTH_HIGH_FULL);
+#endif    
     break;
   case MIXER_EPA_NORM: // 1100-1900
     set_mixer_limits(RX_WIDTH_LOW_NORM, RX_WIDTH_HIGH_NORM);
@@ -2516,7 +2539,7 @@ void setup()
 #endif // RX3SM
 
 #if defined(EAGLE_A3PRO) // TODO(noobee): need to verify functions
-#if !(defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS))
+#if !(defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS) || defined(SERIALRX_SRXL))
   if (cfg.wing_mode == WING_USE_DIPSW)
     wing_mode = dip_sw_to_wing_mode_map[(ele_sw ? 0 : 2) | (rud_sw ? 0 : 1)];
 #endif
@@ -2588,7 +2611,7 @@ again:
   t = micros1();
   update_led(t);
 
-#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS))
+#if (defined(SERIALRX_SPEKTRUM) || defined(SERIALRX_SBUS) || defined(SERIALRX_SRXL))
   if (serialrx_update()) {
     rx_frame_sync = true;
   }

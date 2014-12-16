@@ -84,17 +84,25 @@ add_arduino_firmware(${TODAY}_NANOWII FlightStab leonardo "NANOWII")
 add_arduino_firmware(${TODAY}_NANOWII_CPPM FlightStab leonardo "NANOWII;SERIALRX_CPPM")
 add_arduino_firmware(${TODAY}_NANOWII_SPEKTRUM FlightStab leonardo "NANOWII;SERIALRX_SPEKTRUM")
 add_arduino_firmware(${TODAY}_NANOWII_SBUS FlightStab leonardo "NANOWII;SERIALRX_SBUS")
+add_arduino_firmware(${TODAY}_NANOWII_SRXLH FlightStab leonardo "NANOWII;SERIALRX_SRXL")
+add_arduino_firmware(${TODAY}_NANOWII_SRXLM FlightStab leonardo "NANOWII;SERIALRX_SRXL;SERIALRX_DEFMPX")
 
 # MINI MWC
 add_arduino_firmware(${TODAY}_MINI_MWC_CPPM FlightStab pro5v328 "MINI_MWC;SERIALRX_CPPM")
 add_arduino_firmware(${TODAY}_MINI_MWC_CPPM_EXTERNAL_RX FlightStab pro5v328 "MINI_MWC;SERIALRX_CPPM;MINI_MWC_EXTERNAL_RX")
 add_arduino_firmware(${TODAY}_MINI_MWC_SPEKTRUM FlightStab pro5v328 "MINI_MWC;SERIALRX_SPEKTRUM")
 add_arduino_firmware(${TODAY}_MINI_MWC_SBUS FlightStab pro5v328 "MINI_MWC;SERIALRX_SBUS")
+add_arduino_firmware(${TODAY}_MINI_MWC_SRXLH FlightStab pro5v328 "MINI_MWC;SERIALRX_SRXL")
+add_arduino_firmware(${TODAY}_MINI_MWC_SRXLM FlightStab pro5v328 "MINI_MWC;SERIALRX_SRXL;SERIALRX_DEFMPX")
+
 # FLIP 1.5
 add_arduino_firmware(${TODAY}_FLIP_1_5 FlightStab pro5v328 "FLIP_1_5")
 add_arduino_firmware(${TODAY}_FLIP_1_5_CPPM FlightStab pro5v328 "FLIP_1_5;SERIALRX_CPPM")
 add_arduino_firmware(${TODAY}_FLIP_1_5_SPEKTRUM FlightStab pro5v328 "FLIP_1_5;SERIALRX_SPEKTRUM")
 add_arduino_firmware(${TODAY}_FLIP_1_5_SBUS FlightStab pro5v328 "FLIP_1_5;SERIALRX_SBUS")
+add_arduino_firmware(${TODAY}_FLIP_1_5_SRXLH FlightStab pro5v "FLIP_1_5;SERIALRX_SRXL")
+add_arduino_firmware(${TODAY}_FLIP_1_5_SRXLM FlightStab pro5v "FLIP_1_5;SERIALRX_SRXL;SERIALRX_DEFMPX")
+add_arduino_firmware(${TODAY}_FLIP_1_5_SBUS_MAX_TRAVEL FlightStab pro5v "FLIP_1_5;SERIALRX_SBUS;MAX_TRAVEL")
 
 # RX3S V1/V2V3/RX3SM 16MHz
 add_arduino_firmware(${TODAY}_RX3S_V1 FlightStab pro5v "RX3S_V1")
@@ -106,6 +114,8 @@ add_arduino_firmware(${TODAY}_RX3S_V2_AILR_IN_ON_RUD_IN FlightStab pro5v "RX3S_V
 add_arduino_firmware(${TODAY}_RX3S_V2_CPPM FlightStab pro5v "RX3S_V2;SERIALRX_CPPM")
 add_arduino_firmware(${TODAY}_RX3S_V2_SPEKTRUM FlightStab pro5v "RX3S_V2;SERIALRX_SPEKTRUM")
 add_arduino_firmware(${TODAY}_RX3S_V2_SBUS FlightStab pro5v "RX3S_V2;SERIALRX_SBUS")
+add_arduino_firmware(${TODAY}_RX3S_V2_SRXLH FlightStab pro5v "RX3S_V2;SERIALRX_SRXL")
+add_arduino_firmware(${TODAY}_RX3S_V2_SRXLM FlightStab pro5v "RX3S_V2;SERIALRX_SRXL;SERIALRX_DEFMPX")
 add_arduino_firmware(${TODAY}_RX3SM FlightStab pro5v "RX3SM")
          
 # EagleA3Pro
@@ -121,4 +131,4 @@ add_arduino_firmware(TEST_RX3S_V2_LED_TIMING FlightStab pro5v "RX3S_V2;LED_TIMIN
 add_arduino_firmware(TEST_RX3S_V2_I2CDEVLIB FlightStab pro5v "RX3S_V2;USE_I2CDEVLIB")
 add_arduino_firmware(TEST_RX3S_V2_NO_ONEWIRE FlightStab pro5v "RX3S_V2;NO_ONEWIRE")
 add_arduino_firmware(TEST_RX3S_V2_NO_STICKCONFIG FlightStab pro5v "RX3S_V2;NO_STICKCONFIG")
-
+add_arduino_firmware(TEST_FLIP_1_5_SBUS_DEBUG FlightStab pro5v328 "FLIP_1_5;SERIALRX_SBUS;FLIP_SERIALRX_DEBUG")
