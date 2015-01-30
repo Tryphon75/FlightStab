@@ -108,11 +108,13 @@ prog_char wing_rudele_2ail[] PROGMEM = "RudEle 2-Ail";
 prog_char wing_delta_2ail[] PROGMEM = "Delta 2-Ail";
 prog_char wing_vtail_2ail[] PROGMEM = "VTail 2-Ail";
 prog_char wing_duckeron[] PROGMEM = "Duckeron";
+prog_char wing_rud_2ele_2ail[] PROGMEM = "Rud 2-Ele 2-AIL";
 
 prog_char mixer_epa_mode[] PROGMEM = "EPA MODE";
 prog_char mixer_epa_full[] PROGMEM = "Full 1000-2000";
 prog_char mixer_epa_norm[] PROGMEM = "Norm 1100-1900";
 prog_char mixer_epa_track[] PROGMEM = "Tracking";
+prog_char mixer_epa_max[] PROGMEM = "Max 900-2100";
 
 prog_char servo_frame_rate[] PROGMEM = "SERVO FRAME RATE";
 
@@ -157,10 +159,10 @@ prog_char *param_text0[] PROGMEM =
   status_device_id, status_device_ver, status_device_eeprom};
    
 prog_char *param_text1[] PROGMEM = {wing_mode, 
-  wing_use_dipsw, wing_rudele_1ail, wing_delta_1ail, wing_vtail_1ail, wing_rudele_2ail, wing_delta_2ail, wing_vtail_2ail, wing_duckeron};
+  wing_use_dipsw, wing_rudele_1ail, wing_delta_1ail, wing_vtail_1ail, wing_rudele_2ail, wing_delta_2ail, wing_vtail_2ail, wing_duckeron, wing_rud_2ele_2ail};
 
 prog_char *param_text2[] PROGMEM = {mixer_epa_mode, 
-  mixer_epa_full, mixer_epa_norm, mixer_epa_track};
+  mixer_epa_full, mixer_epa_norm, mixer_epa_track, mixer_epa_max};
   
 prog_char *param_text3[] PROGMEM = {servo_frame_rate, 
    };
@@ -301,8 +303,8 @@ const int16_t param_min[] = {
 
 const int16_t param_max[] = {
   3, // status
-  WING_DUCKERON, 
-  MIXER_EPA_TRACK,  
+  WING_RUD_2ELE_2AIL, 
+  MIXER_EPA_MAX,  
   20, // servo_frame_rate
   serialrx_num_chan-1, // serialrx_order max chan
   SERIALRX_SPEKTRUM_LEVELS_2048,

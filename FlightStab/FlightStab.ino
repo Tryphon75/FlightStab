@@ -37,8 +37,6 @@ bool ow_loop(); // OneWireSerial.ino
 //#define SERIALRX_SRXL // over the serial port SRXL MPX or HoTT
 //#define SERIALRX_DEFMPX // default MPX channel mapping
 
-//#define MAX_TRAVEL // Use travel of 900us-2100us in place of 1000us-2000us
-
 //#define NO_ONEWIRE // remove one-wire serial config code
 //#define NO_STICKCONFIG // remove stick config code
 
@@ -702,8 +700,8 @@ int16_t accel[3] = {0, 0, 0}; // full scale = 16b-signed = 16g? (TODO)
 
 // stabilizer output
 int16_t correction[3] = {0, 0, 0};
-int16_t mixer_out2_low_limit[4];
-int16_t mixer_out2_high_limit[4];
+int16_t mixer_out2_low_limit[5];
+int16_t mixer_out2_high_limit[5];
 
 // configuration
 struct _eeprom_cfg cfg;
@@ -1865,17 +1863,27 @@ void apply_mixer_change(int16_t *change)
     ailr_out2 = RX_WIDTH_MID + tmp0 - tmp1 + max(0,  tmp2 + tmp3); // right1
     rud_out2  = RX_WIDTH_MID + tmp0 - tmp1 - max(0,  tmp2 + tmp3); // right2
     break;
+    
+  case WING_RUD_2ELE_2AIL:
+    ail_out2 = ail_in2 + change[0];
+    ailr_out2 = ailr_in2 + change[0];
+    ele_out2 = ele_in2 + change[1];	// ELE-L
+    flp_out2 = flp_in2 - change[1];     // ELE-R
+    rud_out2 = rud_in2 + change[2];
+    break;  
   }
 
+
   // throttle, flap and aux2 pass through
-  thr_out2 = thr_in2;  
-  flp_out2 = flp_in2;  
+  thr_out2 = thr_in2;
+  if(wing_mode != WING_RUD_2ELE_2AIL) // aux2_out has been used for second elevator   
+    flp_out2 = flp_in2; 
   aux2_out2 = aux2_in2;  
 }
 
 void set_mixer_limits(int16_t low, int16_t high)
 {
-  for (int8_t i=0; i<4; i++) {
+  for (int8_t i=0; i<5; i++) {
     mixer_out2_low_limit[i] = low;
     mixer_out2_high_limit[i] = high;
   }
@@ -1885,14 +1893,15 @@ void apply_mixer()
 {
   // *_in2 => [correction] => *_out2
   
-  static int16_t * const pout2[]  = {&ail_out2, &ele_out2, &rud_out2, &ailr_out2};
+  static int16_t * const pout2[]  = {&ail_out2, &ele_out2, &rud_out2, &ailr_out2, &flp_out2}; 
   int8_t i;
+  int8_t cnt;
   
   // if tracking servo limits, apply mixer with zero correction to determine output from rx alone (pass through)
   if (cfg.mixer_epa_mode == MIXER_EPA_TRACK) {
-    const int16_t zero_correction[4] = {0, 0, 0, 0};
+    const int16_t zero_correction[5] = {0, 0, 0, 0, 0};
     apply_mixer_change((int16_t *)zero_correction);
-    for (i=0; i<4; i++) {
+    for (i=0; i<5; i++) {
       mixer_out2_low_limit[i] = min(*pout2[i], mixer_out2_low_limit[i]);
       mixer_out2_high_limit[i] = max(*pout2[i], mixer_out2_high_limit[i]);
     }
@@ -1900,7 +1909,13 @@ void apply_mixer()
   
   // apply mixer with actual correction and clamp servo output to limits
   apply_mixer_change(correction);
-  for (i=0; i<4; i++) {
+  // Do not constrain Flap channel unless it is being used for left elevator
+  if (cfg.mixer_epa_mode == MIXER_EPA_MAX)
+    cnt = 5;
+  else
+    cnt = 4; 
+    	  
+  for (i=0; i<cnt; i++) {
     *pout2[i] = constrain(*pout2[i], mixer_out2_low_limit[i], mixer_out2_high_limit[i]);
   }
 }
@@ -1996,13 +2011,8 @@ void dump_sensors()
     Serial.print(gyro[2]); Serial.print('\t');
 
     servo_out += servo_dir;
-#if defined (MAX_TRAVEL) || defined(SERIALRX_DEFMPX)
-    if (servo_out < RX_WIDTH_MIN || servo_out > RX_WIDTH_MAX) {
-      servo_out = constrain(servo_out, RX_WIDTH_MIN, RX_WIDTH_MAX);
-#else
     if (servo_out < RX_WIDTH_LOW_FULL || servo_out > RX_WIDTH_HIGH_FULL) {
       servo_out = constrain(servo_out, RX_WIDTH_LOW_FULL, RX_WIDTH_HIGH_FULL);
-#endif      
       servo_dir = -servo_dir;
     }
     ail_out2 = ele_out2 = rud_out2 = ailr_out2 = thr_out2 = flp_out2 = aux2_out2 = servo_out;
@@ -2450,20 +2460,18 @@ void setup()
   
   // set mixer limits based on configuration
   switch (cfg.mixer_epa_mode) {
-#if defined (MAX_TRAVEL) || defined(SERIALRX_DEFMPX)
-  case MIXER_EPA_FULL: // 900-2100
-    set_mixer_limits(RX_WIDTH_MIN, RX_WIDTH_MAX);
-#else  	
   case MIXER_EPA_FULL: // 1000-2000
     set_mixer_limits(RX_WIDTH_LOW_FULL, RX_WIDTH_HIGH_FULL);
-#endif    
     break;
   case MIXER_EPA_NORM: // 1100-1900
     set_mixer_limits(RX_WIDTH_LOW_NORM, RX_WIDTH_HIGH_NORM);
     break;
   case MIXER_EPA_TRACK: // 1250-1750 initially and track
     set_mixer_limits(RX_WIDTH_LOW_TRACK, RX_WIDTH_HIGH_TRACK);
-    break;  
+    break; 
+  case MIXER_EPA_MAX: // 900-2100
+    set_mixer_limits(RX_WIDTH_MIN, RX_WIDTH_MAX);
+    break;       
   }
 
   minimum_servo_frame_time = cfg.servo_frame_rate * 1000; // ms to us  

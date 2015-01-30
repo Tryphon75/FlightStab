@@ -18,7 +18,7 @@ int8_t rshift;
 // The following value is added to the received pulse count
 // to make the center pulse width = 1500 when the TX output is 1500
 // TODO(noobee): i guess we would need to make this configurable..
-#define SBUS_OFFSET 1008 // 1009 for Futaba R6208SB, 1008 for Taranis FRSKY X8R, 984 for Orange R800x
+#define SBUS_OFFSET 1005 // 1009 for Futaba R6208SB, 1005 for Taranis FRSKY X8R, 984 for Orange R800x
 
 //jrb - added 20140829 Use defines for SBUS Constants instead of hard coded numbers
 // SBUS unique defines
@@ -307,10 +307,10 @@ jrb*/
        // Adjust the actual value by +/-25%.  Sign determined by pulse width above or below center of 1520us 
        for(adj_index=0; adj_index<rx_chan_size; adj_index++)
        {
-       	if (*p[adj_index] < 1520)
-       	  *p[adj_index] -= (1520 - *p[adj_index]) >> 2;		
+        if (*p[adj_index] < RX_WIDTH_MID)
+       	  *p[adj_index] -= (RX_WIDTH_MID - *p[adj_index]) >> 2;		
        	else	
-       	  *p[adj_index] += (*p[adj_index] - 1520) >> 2;
+       	  *p[adj_index] += (*p[adj_index] - RX_WIDTH_MID) >> 2;
        }	 
         index = 0;
         sbus_return = true;

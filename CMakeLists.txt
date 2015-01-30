@@ -102,7 +102,6 @@ add_arduino_firmware(${TODAY}_FLIP_1_5_SPEKTRUM FlightStab pro5v328 "FLIP_1_5;SE
 add_arduino_firmware(${TODAY}_FLIP_1_5_SBUS FlightStab pro5v328 "FLIP_1_5;SERIALRX_SBUS")
 add_arduino_firmware(${TODAY}_FLIP_1_5_SRXLH FlightStab pro5v "FLIP_1_5;SERIALRX_SRXL")
 add_arduino_firmware(${TODAY}_FLIP_1_5_SRXLM FlightStab pro5v "FLIP_1_5;SERIALRX_SRXL;SERIALRX_DEFMPX")
-add_arduino_firmware(${TODAY}_FLIP_1_5_SBUS_MAX_TRAVEL FlightStab pro5v "FLIP_1_5;SERIALRX_SBUS;MAX_TRAVEL")
 
 # RX3S V1/V2V3/RX3SM 16MHz
 add_arduino_firmware(${TODAY}_RX3S_V1 FlightStab pro5v "RX3S_V1")
@@ -132,3 +131,4 @@ add_arduino_firmware(TEST_RX3S_V2_I2CDEVLIB FlightStab pro5v "RX3S_V2;USE_I2CDEV
 add_arduino_firmware(TEST_RX3S_V2_NO_ONEWIRE FlightStab pro5v "RX3S_V2;NO_ONEWIRE")
 add_arduino_firmware(TEST_RX3S_V2_NO_STICKCONFIG FlightStab pro5v "RX3S_V2;NO_STICKCONFIG")
 add_arduino_firmware(TEST_FLIP_1_5_SBUS_DEBUG FlightStab pro5v328 "FLIP_1_5;SERIALRX_SBUS;FLIP_SERIALRX_DEBUG")
+
