@@ -652,6 +652,7 @@ volatile uint8_t rud_vr = 255;
 #define RX_WIDTH_LOW_NORM 1100
 #define RX_WIDTH_LOW_TRACK 1250
 #define RX_WIDTH_MID 1500
+#define RX_WIDTH_MODE_MID 1550	// Move all hysteresis to Hold Mode side so 1500-1520 will always force Rate Mode
 #define RX_WIDTH_HIGH_TRACK 1750
 #define RX_WIDTH_HIGH_NORM 1900
 #define RX_WIDTH_HIGH_FULL 2000
@@ -2684,8 +2685,8 @@ again:
 
     // stabilization mode
     enum STAB_MODE stab_mode2 = 
-      (stab_mode == STAB_HOLD && aux_in2 <= RX_WIDTH_MID - 25) ? STAB_RATE : 
-      (stab_mode == STAB_RATE && aux_in2 >= RX_WIDTH_MID + 25) ? STAB_HOLD : stab_mode; // hysteresis
+      (stab_mode == STAB_HOLD && aux_in2 <= RX_WIDTH_MODE_MID - 25) ? STAB_RATE : 
+      (stab_mode == STAB_RATE && aux_in2 >= RX_WIDTH_MODE_MID + 25) ? STAB_HOLD : stab_mode; // hysteresis, all now in Hold Mode region
 
     if (stab_mode2 != stab_mode) {
       stab_mode = stab_mode2;
@@ -2729,7 +2730,7 @@ again:
     stick_gain[2] = stick_gain_max - min(abs(rud_in2_offset) << shift, stick_gain_max);    
     
     // master gain [1500-1100] or [1500-1900] => [0, MASTER_GAIN_MAX] 
-    master_gain = constrain(abs(aux_in2 - RX_WIDTH_MID), 0, master_gain_max);     
+    master_gain = constrain(abs(aux_in2 - RX_WIDTH_MODE_MID), 0, master_gain_max);     
     if (master_gain < 25) master_gain = 0; // deadband
   
     // commanded angular rate (could be from [ail|ele|rud]_in2, note direction/sign)
