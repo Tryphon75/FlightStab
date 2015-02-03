@@ -1,10 +1,12 @@
 2015-02-03 FlightStab Change Log
 
 
-2015-02-03 FlightStab.ino MIXER_EPA settings were not being properly applied to 
-ELE-R (normally Flap) channel. Corrected firmware bug after Mixer was applied for 
-RUD 2-ELE 2-AIL mode.
+2015-02-03 FlightStab.ino 
+MIXER_EPA settings were not being properly applied to ELE-R (normally Flap) 
+channel. Corrected firmware bug after Mixer was applied for RUD 2-ELE 2-AIL 
+mode.
 
+2015-02-03 FlightStab.ino
 Add #define RX_WIDTH_MODE_MID 1550
 This new value will be used to move gain input hysteresis to reside entirelly in 
 the Hold Mode Range. This forces Rate Mode for any value below 1525 which 
