@@ -1911,7 +1911,7 @@ void apply_mixer()
   // apply mixer with actual correction and clamp servo output to limits
   apply_mixer_change(correction);
   // Do not constrain Flap channel unless it is being used for left elevator
-  if (cfg.mixer_epa_mode == MIXER_EPA_MAX)
+  if (wing_mode == WING_RUD_2ELE_2AIL)
     cnt = 5;
   else
     cnt = 4; 
