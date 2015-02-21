@@ -470,7 +470,7 @@ bool ow_loop(); // OneWireSerial.ino
 #define DIN_PORTD {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
 
 // <SERVO>
-#define PWM_CHAN_PIN {3, 9, 15, 10, -1, 11, -1, 16} // RETA1a2F
+#define PWM_CHAN_PIN {3, 9, 15, 10, -1, 11, 12, 16} // RETA1a2F
 #define PWM_CHAN_PIN_SERIALRX PWM_CHAN_PIN // same pwm output list
 
 // <IMU>
@@ -647,6 +647,8 @@ volatile uint8_t ele_vr = 255;
 volatile uint8_t rud_vr = 255;
 
 // rx
+#define RX_GAIN_HYSTERESIS 25
+#define RX_MODE_HYSTERESIS 25
 #define RX_WIDTH_MIN 900
 #define RX_WIDTH_LOW_FULL 1000
 #define RX_WIDTH_LOW_NORM 1100
@@ -991,7 +993,6 @@ uint8_t i2c_read_reg(uint8_t addr, uint8_t reg)
   i2c_start(addr << 1); // write reg
   i2c_write(reg);
   i2c_start((addr << 1) | 1); // read data
-  //jrb return i2c_read(true);
   return i2c_read(false);  
 }
 
@@ -1877,7 +1878,7 @@ void apply_mixer_change(int16_t *change)
 
   // throttle, flap and aux2 pass through
   thr_out2 = thr_in2;
-  if(wing_mode != WING_RUD_2ELE_2AIL) // aux2_out has been used for second elevator   
+  if(wing_mode != WING_RUD_2ELE_2AIL) // flp_out2 has been used for second elevator   
     flp_out2 = flp_in2; 
   aux2_out2 = aux2_in2;  
 }
@@ -2643,6 +2644,10 @@ again:
   if (!servo_busy && servo_sync && (int32_t)(t - last_servo_frame_time) > minimum_servo_frame_time) {
     servo_sync = false;
     apply_mixer();
+    
+    //jrb Debug - Remove comment from following line to view master_gain + 1000 on AUX2 output
+    //aux2_out2 = RX_WIDTH_LOW_FULL + master_gain;
+     
     start_servo_frame();
     last_servo_frame_time = t;
   }   
@@ -2685,8 +2690,8 @@ again:
 
     // stabilization mode
     enum STAB_MODE stab_mode2 = 
-      (stab_mode == STAB_HOLD && aux_in2 <= RX_WIDTH_MODE_MID - 25) ? STAB_RATE : 
-      (stab_mode == STAB_RATE && aux_in2 >= RX_WIDTH_MODE_MID + 25) ? STAB_HOLD : stab_mode; // hysteresis, all now in Hold Mode region
+      (stab_mode == STAB_HOLD && aux_in2 <= RX_WIDTH_MODE_MID - RX_MODE_HYSTERESIS) ? STAB_RATE : 
+      (stab_mode == STAB_RATE && aux_in2 >= RX_WIDTH_MODE_MID + RX_MODE_HYSTERESIS) ? STAB_HOLD : stab_mode; // hysteresis, all now in Hold Mode region
 
     if (stab_mode2 != stab_mode) {
       stab_mode = stab_mode2;
@@ -2729,9 +2734,20 @@ again:
     stick_gain[1] = stick_gain_max - min(abs(ele_in2_offset) << shift, stick_gain_max);
     stick_gain[2] = stick_gain_max - min(abs(rud_in2_offset) << shift, stick_gain_max);    
     
-    // master gain [1500-1100] or [1500-1900] => [0, MASTER_GAIN_MAX] 
-    master_gain = constrain(abs(aux_in2 - RX_WIDTH_MID), 0, master_gain_max);     
-    if (master_gain < 25) master_gain = 0; // deadband
+    // master gain [Rate = 1475-1075] or [Hold = 1575-1975] => [0, MASTER_GAIN_MAX] 
+    if (aux_in2 < (RX_WIDTH_MID - RX_GAIN_HYSTERESIS))  {
+    	// Handle Rate Mode Gain Offset, gain = 1 when hysteresis area is exited
+    	// Previously gain was the value of RX_GAIN_HYSTERESIS at first exit
+    	master_gain = constrain(((RX_WIDTH_MID - RX_GAIN_HYSTERESIS) - aux_in2) , 0, master_gain_max);
+    } else {
+    	if (aux_in2 > (RX_WIDTH_MODE_MID + RX_MODE_HYSTERESIS))  {
+    	   // Handle Hold Mode Gain Offset, gain = 1 when both hysteresis areas are exited
+    	   // Previously gain was the value of RX_MODE_HYSTERESIS at first exit
+    	   master_gain = constrain(aux_in2 - (RX_WIDTH_MID + RX_MODE_HYSTERESIS), 0, master_gain_max);		
+    	} 
+    	  // Force Gain to 0 while in either of the Hysteresis areas    
+    	  else  master_gain = 0; // Force deadband
+    }	  	
   
     // commanded angular rate (could be from [ail|ele|rud]_in2, note direction/sign)
     if (stab_mode == STAB_HOLD || 
